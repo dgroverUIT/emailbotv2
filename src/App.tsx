@@ -184,7 +184,10 @@ function App() {
               />
               {isAuthenticated && currentView === 'bots' && (
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={() => {
+                    console.log('🟦 Create Bot button clicked');
+                    setShowForm(true);
+                  }}
                   className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   <Plus className="w-4 h-4 mr-2" />
