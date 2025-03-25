@@ -54,7 +54,10 @@ export function BotForm({ bot, onSave, onCancel }: BotFormProps) {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError) throw new Error('Authentication error');
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Authentication error: ' + sessionError.message);
+      }
       if (!session) throw new Error('Please sign in to create or edit bots');
 
       // Check if email already exists
@@ -67,31 +70,67 @@ export function BotForm({ bot, onSave, onCancel }: BotFormProps) {
 
       if (bot) {
         // Update existing bot
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('bots')
           .update(formData)
           .eq('id', bot.id)
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw new Error('Failed to update bot: ' + error.message);
+        }
         toast.success('Bot updated successfully');
       } else {
         // Create new bot
-        const { error } = await supabase
+        console.log('Creating bot with data:', { ...formData, user_id: session.user.id });
+        console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+        console.log('Session user:', session.user);
+        
+        const { data, error } = await supabase
           .from('bots')
-          .insert([{ ...formData, user_id: session.user.id }])
-          .select()
-          .single();
+          .insert([{ 
+            name: formData.name,
+            email: formData.email,
+            description: formData.description,
+            forwarding_email: formData.forwarding_email,
+            user_id: session.user.id
+          }])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            requestData: {
+              name: formData.name,
+              email: formData.email,
+              description: formData.description,
+              forwarding_email: formData.forwarding_email,
+              user_id: session.user.id
+            },
+            session: {
+              user: session.user,
+              access_token: session.access_token
+            }
+          });
+          throw new Error(`Failed to create bot: ${error.message}`);
+        }
+        console.log('Bot created successfully:', data);
         toast.success('Bot created successfully');
       }
 
       onSave();
     } catch (error) {
       console.error('Error saving bot:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save bot');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to save bot: ' + JSON.stringify(error));
+      }
     } finally {
       setLoading(false);
     }

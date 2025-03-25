@@ -66,6 +66,10 @@ export function AuthButton({ isAuthenticated, onAuthChange }: AuthButtonProps) {
       });
 
       if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Please check your email for the confirmation link. If you didn\'t receive it, try signing up again.');
+          return;
+        }
         if (error.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password. Please try again.');
         }
